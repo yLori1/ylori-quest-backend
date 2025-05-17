@@ -1,30 +1,38 @@
-const express = require('express');
-const { GoogleSpreadsheet } = require('google-spreadsheet');
+import express from 'express';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
+import dotenv from 'dotenv';
+
+dotenv.config();
 const router = express.Router();
 
-const creds = require('../google-credentials.json'); // your Google service account creds
-const SHEET_ID = '1HklMrmjW56gR8OmQH6LuTxKMiA3zVEfbZ4KrX3vMKeM'; // replace with your Google Sheet ID
+const SHEET_ID = process.env.GOOGLE_SHEET_ID;
+const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
-router.post('/discord-user', async (req, res) => {
-  const { username } = req.body;
+router.post('/', async (req, res) => {
+  const { discordId, walletAddress, questCompleted } = req.body;
 
-  if (!username) {
-    return res.status(400).json({ error: 'Username is required' });
+  if (!discordId || !walletAddress || !questCompleted) {
+    return res.status(400).json({ error: 'Missing fields in request' });
   }
 
   try {
     const doc = new GoogleSpreadsheet(SHEET_ID);
-    await doc.useServiceAccountAuth(creds);
+    await doc.useServiceAccountAuth(serviceAccount);
     await doc.loadInfo();
+    const sheet = doc.sheetsByIndex[0];
 
-    const sheet = doc.sheetsByIndex[0]; // first sheet
-    await sheet.addRow({ Username: username, Timestamp: new Date().toISOString() });
+    await sheet.addRow({
+      DiscordID: discordId,
+      WalletAddress: walletAddress,
+      QuestCompleted: questCompleted,
+      Timestamp: new Date().toISOString(),
+    });
 
-    res.json({ message: 'User logged to Google Sheet' });
+    res.status(200).json({ message: 'Quest recorded successfully' });
   } catch (err) {
-    console.error('Google Sheet error:', err);
-    res.status(500).json({ error: 'Failed to log to Google Sheet' });
+    console.error('Error writing to Google Sheet:', err);
+    res.status(500).json({ error: 'Failed to write to Google Sheet' });
   }
 });
 
-module.exports = router;
+export default router;
