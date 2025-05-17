@@ -1,6 +1,6 @@
-// testGoogleSheet.js
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import dotenv from 'dotenv';
+import fs from 'fs/promises';
 
 dotenv.config();
 
@@ -9,25 +9,15 @@ if (!SHEET_ID) {
   throw new Error('❌ Missing GOOGLE_SHEET_ID in environment variables');
 }
 
-let serviceAccount;
-try {
-  serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-} catch (err) {
-  throw new Error('❌ Invalid GOOGLE_SERVICE_ACCOUNT_JSON. Ensure it is a valid JSON string.');
-}
+const raw = await fs.readFile('./service-account.json', 'utf-8');
+const serviceAccount = JSON.parse(raw);
 
 async function testSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
 
-  console.log('🛠️ typeof useServiceAccountAuth:', typeof doc.useServiceAccountAuth);
-
-  if (typeof doc.useServiceAccountAuth !== 'function') {
-    throw new Error('❌ useServiceAccountAuth is not a function. Likely wrong google-spreadsheet version.');
-  }
-
   await doc.useServiceAccountAuth({
     client_email: serviceAccount.client_email,
-    private_key: serviceAccount.private_key.replace(/\\n/g, '\n'),
+    private_key: serviceAccount.private_key,
   });
 
   await doc.loadInfo();

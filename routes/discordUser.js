@@ -1,45 +1,50 @@
 import express from 'express';
-import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { supabase } from '../utils/supabaseClient.js';
 import dotenv from 'dotenv';
+
 
 dotenv.config();
 const router = express.Router();
 
-const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-
 router.post('/', async (req, res) => {
-  const { discordId, walletAddress, questCompleted } = req.body;
+  const { discordId, walletAddress, questCompleted, discordUsername } = req.body;
 
-  if (!discordId || !walletAddress || !questCompleted) {
+  if (!discordId || !walletAddress || questCompleted === undefined) {
     return res.status(400).json({ error: 'Missing fields in request' });
   }
 
   try {
-    const doc = new GoogleSpreadsheet(SHEET_ID);
+    // Check if user already exists
+    const { data: existingUser, error: fetchError } = await supabase
+      .from('discord_users')
+      .select('*')
+      .eq('discord_id', discordId)
+      .single();
 
-    console.log('typeof useServiceAccountAuth:', typeof doc.useServiceAccountAuth);
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      return res.status(500).json({ error: fetchError.message });
+    }
 
-await doc.useServiceAccountAuth({
-  client_email: serviceAccount.client_email,
-  private_key: serviceAccount.private_key.replace(/\\n/g, '\n'),
-});
+    if (existingUser) {
+      return res.status(200).json({ message: 'User already exists' });
+    }
 
+    // Insert new user data
+    const { data, error } = await supabase.from('discord_users').insert([
+      {
+        discord_id: discordId,
+        discord_username: discordUsername || null,
+        wallet_address: walletAddress,
+        quest_completed: questCompleted,
+      },
+    ]);
 
-    await doc.loadInfo();
-    const sheet = doc.sheetsByIndex[0];
+    if (error) throw error;
 
-    await sheet.addRow({
-      DiscordID: discordId,
-      WalletAddress: walletAddress,
-      QuestCompleted: questCompleted,
-      Timestamp: new Date().toISOString(),
-    });
-
-    res.status(200).json({ message: 'Quest recorded successfully' });
+    res.status(200).json({ message: 'Quest recorded successfully', user: data });
   } catch (err) {
-    console.error('Error writing to Google Sheet:', err);
-    res.status(500).json({ error: 'Failed to write to Google Sheet' });
+    console.error('Error writing to Supabase:', err);
+    res.status(500).json({ error: 'Failed to record quest in Supabase' });
   }
 });
 

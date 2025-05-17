@@ -3,7 +3,7 @@ import express from 'express';
 import axios from 'axios';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { appendToSheet } from './googleSheet.js';
+//import { appendToSheet } from './googleSheet.js';
 import discordUserRoute from './routes/discordUser.js';
 import logDiscordUser from './routes/logDiscordUser.js'; // ✅ NEW
 
