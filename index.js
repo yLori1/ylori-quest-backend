@@ -89,7 +89,7 @@ app.post('/submit-wallet', async (req, res) => {
 });
 
 // Other API routes
-app.use('/api', discordUserRoute);
+app.use('/api/discord-user', discordUserRoute);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`✅ Backend live at http://localhost:${PORT}`));
