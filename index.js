@@ -1,4 +1,3 @@
-// index.js
 import express from 'express';
 import axios from 'axios';
 import cors from 'cors';
@@ -22,20 +21,21 @@ if (!FRONTEND_URL || !DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_RE
 
 const app = express();
 
+// ✅ Updated CORS setup: allow HTTPS frontend and optionally localhost for dev
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: ['https://quest.ylori.site', 'http://localhost:3000'],
   credentials: true,
 }));
 
 app.use(express.json());
 
-// OAuth2 redirect to Discord
+// Discord OAuth2 redirect
 app.get('/auth/discord', (req, res) => {
   const redirect = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=identify%20email`;
   res.redirect(redirect);
 });
 
-// OAuth2 callback
+// Discord OAuth2 callback
 app.get('/auth/discord/callback', async (req, res) => {
   const code = req.query.code;
   if (!code) return res.status(400).send('No code provided');
@@ -64,7 +64,6 @@ app.get('/auth/discord/callback', async (req, res) => {
 
     const { username, discriminator, id } = userResponse.data;
 
-    // Redirect with user info to frontend
     res.redirect(`${FRONTEND_URL}/discord/callback?username=${encodeURIComponent(username)}&discriminator=${discriminator}&id=${id}`);
   } catch (err) {
     console.error('🔴 Discord OAuth error:', err.response?.data || err.message);
@@ -89,7 +88,7 @@ app.post('/submit-wallet', async (req, res) => {
   }
 });
 
-// Mount your other API routes here
+// Other API routes
 app.use('/api', discordUserRoute);
 
 const PORT = process.env.PORT || 4000;
