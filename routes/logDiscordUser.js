@@ -22,6 +22,13 @@ router.post('/', async (req, res) => {
     await doc.loadInfo();
     const sheet = doc.sheetsByIndex[0];
 
+    // ✅ Prevent duplicate entries
+    const existingRows = await sheet.getRows();
+    const alreadyLogged = existingRows.some(row => row.DiscordID === id);
+    if (alreadyLogged) {
+      return res.status(200).json({ message: 'User already logged' });
+    }
+
     await sheet.addRow({
       DiscordUsername: username,
       DiscordID: id,
@@ -30,7 +37,7 @@ router.post('/', async (req, res) => {
 
     res.status(200).json({ message: 'Discord user logged successfully' });
   } catch (err) {
-    console.error('Error writing to Google Sheet:', err);
+    console.error('Error writing to Google Sheet:', err.response?.data || err.message || err);
     res.status(500).json({ error: 'Failed to write to Google Sheet' });
   }
 });
