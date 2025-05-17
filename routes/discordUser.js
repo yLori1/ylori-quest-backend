@@ -17,7 +17,12 @@ router.post('/', async (req, res) => {
 
   try {
     const doc = new GoogleSpreadsheet(SHEET_ID);
-    await doc.useServiceAccountAuth(serviceAccount);
+
+    await doc.useServiceAccountAuth({
+      client_email: serviceAccount.client_email,
+      private_key: serviceAccount.private_key.replace(/\\n/g, '\n'),
+    });
+
     await doc.loadInfo();
     const sheet = doc.sheetsByIndex[0];
 
