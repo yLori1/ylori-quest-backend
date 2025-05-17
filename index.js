@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import { GoogleSpreadsheet } from 'google-spreadsheet';
 import dotenv from 'dotenv';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
 
 dotenv.config();
 
@@ -26,10 +26,10 @@ async function connectGoogleSheet() {
       private_key: serviceAccount.private_key.replace(/\\n/g, '\n'),
     });
     await doc.loadInfo();
-    console.log('Connected to Google Sheet:', doc.title);
+    console.log('✅ Connected to Google Sheet:', doc.title);
   } catch (error) {
-    console.error('Error connecting to Google Sheet:', error);
-    process.exit(1); // Stop server if auth fails
+    console.error('❌ Error connecting to Google Sheet:', error);
+    process.exit(1);
   }
 }
 
@@ -43,7 +43,6 @@ app.post('/api/log-discord-user', async (req, res) => {
   try {
     const sheet = doc.sheetsByIndex[0];
     await sheet.loadHeaderRow();
-
     const rows = await sheet.getRows();
 
     const alreadyLogged = rows.some(row => row.DiscordID === id);
@@ -60,14 +59,13 @@ app.post('/api/log-discord-user', async (req, res) => {
 
     return res.status(200).json({ message: 'Discord user logged successfully' });
   } catch (err) {
-    console.error('Error writing to Google Sheet:', err);
+    console.error('❌ Error writing to Google Sheet:', err);
     return res.status(500).json({ error: 'Failed to write to Google Sheet' });
   }
 });
 
-// Start server only after connecting to Google Sheets
 connectGoogleSheet().then(() => {
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
   });
 });
