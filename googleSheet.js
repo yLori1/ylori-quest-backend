@@ -1,15 +1,15 @@
 import { google } from 'googleapis';
-import fs from 'fs';
 
-// Load credentials from JSON file
+// Parse service account JSON from environment variable
+const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+
 const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(fs.readFileSync('./google-credentials.json', 'utf-8')),
+  credentials,
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
-// Replace with your Google Sheet ID
-const SHEET_ID = 'your_google_sheet_id_here'; 
-const RANGE = 'Sheet1!A2:D'; // Skip headers (row 1)
+const SHEET_ID = process.env.SHEET_ID; // Make sure this is set in env variables
+const RANGE = 'Sheet1!A2:D'; // Skip headers
 
 export async function appendToSheet(discordUsername, discordId, walletAddress) {
   const client = await auth.getClient();
