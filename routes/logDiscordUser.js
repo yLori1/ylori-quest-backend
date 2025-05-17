@@ -1,43 +1,62 @@
 import express from 'express';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
-import { JWT } from 'google-auth-library';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
 const router = express.Router();
 
-router.post('/', async (req, res) => {
-  try {
-    const { discordId, discordUsername, walletAddress } = req.body;
+const SHEET_ID = process.env.GOOGLE_SHEET_ID;
+if (!SHEET_ID) {
+  throw new Error('Missing GOOGLE_SHEET_ID in environment variables');
+}
 
-    if (!discordId || !discordUsername || !walletAddress) {
-      return res.status(400).json({ error: 'Missing required fields' });
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+} catch (e) {
+  throw new Error('Invalid GOOGLE_SERVICE_ACCOUNT_JSON environment variable. Ensure it is a valid JSON string.');
+}
+
+router.post('/', async (req, res) => {
+  const { username, id } = req.body;
+
+  if (!username || !id) {
+    return res.status(400).json({ error: 'Missing username or id' });
+  }
+
+  try {
+    const doc = new GoogleSpreadsheet(SHEET_ID);
+
+    await doc.useServiceAccountAuth({
+      client_email: serviceAccount.client_email,
+      // Replace escaped newlines with actual newlines in the private key
+      private_key: serviceAccount.private_key.replace(/\\n/g, '\n'),
+    });
+
+    await doc.loadInfo();
+    const sheet = doc.sheetsByIndex[0];
+
+    // Fetch all rows to check for duplicates
+    const rows = await sheet.getRows();
+
+    const alreadyLogged = rows.some(row => row.DiscordID === id);
+    if (alreadyLogged) {
+      return res.status(200).json({ message: 'User already logged' });
     }
 
-    const serviceAccountAuth = new JWT({
-      email: process.env.GOOGLE_CLIENT_EMAIL,
-      key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
-
-    const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID);
-    await doc.useAuthClient(serviceAccountAuth);
-    await doc.loadInfo();
-
-    const sheet = doc.sheetsByIndex[0]; // Assumes the first sheet is used
     await sheet.addRow({
+      DiscordUsername: username,
+      DiscordID: id,
       Timestamp: new Date().toISOString(),
-      DiscordID: discordId,
-      DiscordUsername: discordUsername,
-      WalletAddress: walletAddress,
     });
 
-    res.status(200).json({ message: 'User logged to Google Sheet' });
-
-  } catch (error) {
-    console.error('❌ Error connecting to Google Sheet:', error);
-    res.status(500).json({ error: 'Failed to log user to Google Sheet' });
+    res.status(200).json({ message: 'Discord user logged successfully' });
+  } catch (err) {
+    console.error('💥 Error writing to Google Sheet:', err);
+    res.status(500).json({
+      error: 'Failed to write to Google Sheet',
+      details: err.message || String(err),
+    });
   }
 });
 
