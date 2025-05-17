@@ -1,1 +1,40 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Environment variables
 .env
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Debug files
+*.swp
+*.swo
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+
+# Coverage and test output
+coverage/
+*.lcov
+
+# Build
+dist/
+build/
+
+# Optional: ignore uploads or temp data
+uploads/
+tmp/
