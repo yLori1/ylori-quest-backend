@@ -1,9 +1,11 @@
+// index.js
 import express from 'express';
 import axios from 'axios';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { appendToSheet } from './googleSheet.js';
 import discordUserRoute from './routes/discordUser.js';
+import logDiscordUser from './routes/logDiscordUser.js'; // ✅ NEW
 
 dotenv.config();
 
@@ -21,12 +23,10 @@ if (!FRONTEND_URL || !DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_RE
 
 const app = express();
 
-// ✅ Updated CORS setup: allow HTTPS frontend and optionally localhost for dev
 app.use(cors({
   origin: ['https://quest.ylori.site', 'http://localhost:3000'],
   credentials: true,
 }));
-
 app.use(express.json());
 
 // Discord OAuth2 redirect
@@ -71,7 +71,10 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 });
 
-// Endpoint to append wallet + Discord user info to Google Sheet
+// ✅ New endpoint to log basic Discord user info
+app.use('/api/log-discord-user', logDiscordUser);
+
+// Existing quest submission endpoint
 app.post('/submit-wallet', async (req, res) => {
   const { discordUsername, discordId, walletAddress } = req.body;
 
