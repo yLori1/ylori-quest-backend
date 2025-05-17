@@ -1,10 +1,12 @@
-// server.js or index.js (your Express backend)
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import axios from 'axios';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
+
 app.use(cors({
   origin: process.env.FRONTEND_URL,
   credentials: true,
@@ -45,8 +47,12 @@ app.get('/auth/discord/callback', async (req, res) => {
 
     const user = userRes.data;
 
-    // Send user info or generate your own session/jwt here
-    res.json({ user });
+    // Redirect to frontend callback page with user info in query params
+    const username = encodeURIComponent(user.username);
+    const discriminator = encodeURIComponent(user.discriminator);
+    const id = encodeURIComponent(user.id);
+
+    res.redirect(`${process.env.FRONTEND_URL}/discord/callback?username=${username}&discriminator=${discriminator}&id=${id}`);
   } catch (err) {
     console.error(err.response?.data || err.message);
     res.status(500).send('Error during Discord OAuth');
