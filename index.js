@@ -1,21 +1,22 @@
+// index.js
 import express from 'express';
 import axios from 'axios';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { appendToSheet } from './googlesheet.js';
+import { appendToSheet } from './googleSheet.js';
+import discordUserRoute from './routes/discordUser.js';
 
 dotenv.config();
 
 const {
-  FRONTEND_URL = 'https://your-frontend-url.com', // Replace with your live frontend URL
+  FRONTEND_URL,
   DISCORD_CLIENT_ID,
   DISCORD_CLIENT_SECRET,
-  DISCORD_REDIRECT_URI = 'https://your-backend-url.com/auth/discord/callback', // Replace with your live backend URL
+  DISCORD_REDIRECT_URI,
 } = process.env;
 
-// Check required env variables
 if (!FRONTEND_URL || !DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_REDIRECT_URI) {
-  console.error('❌ Missing one or more required environment variables in .env');
+  console.error('❌ Missing required environment variables in .env');
   process.exit(1);
 }
 
@@ -26,15 +27,15 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json()); // JSON body parser middleware
+app.use(express.json());
 
-// Step 1: Redirect to Discord OAuth2
+// OAuth2 redirect to Discord
 app.get('/auth/discord', (req, res) => {
   const redirect = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=identify%20email`;
   res.redirect(redirect);
 });
 
-// Step 2: Discord OAuth2 callback
+// OAuth2 callback
 app.get('/auth/discord/callback', async (req, res) => {
   const code = req.query.code;
   if (!code) return res.status(400).send('No code provided');
@@ -57,14 +58,13 @@ app.get('/auth/discord/callback', async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
 
-    // Fetch user info
     const userResponse = await axios.get('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const { username, discriminator, id } = userResponse.data;
 
-    // Redirect with user info as query params
+    // Redirect with user info to frontend
     res.redirect(`${FRONTEND_URL}/discord/callback?username=${encodeURIComponent(username)}&discriminator=${discriminator}&id=${id}`);
   } catch (err) {
     console.error('🔴 Discord OAuth error:', err.response?.data || err.message);
@@ -72,7 +72,7 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 });
 
-// POST endpoint to submit wallet data to Google Sheets
+// Endpoint to append wallet + Discord user info to Google Sheet
 app.post('/submit-wallet', async (req, res) => {
   const { discordUsername, discordId, walletAddress } = req.body;
 
@@ -89,8 +89,8 @@ app.post('/submit-wallet', async (req, res) => {
   }
 });
 
+// Mount your other API routes here
+app.use('/api', discordUserRoute);
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`✅ Backend live at http://localhost:${PORT}`));
-
-const discordUserRoute = require('./routes/discordUser');
-app.use('/api', discordUserRoute);
