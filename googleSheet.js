@@ -1,15 +1,20 @@
 import { google } from 'googleapis';
 
-// Parse service account JSON from environment variable
-const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+let credentials;
+try {
+  credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+} catch (e) {
+  console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:', e);
+  process.exit(1);
+}
 
 const auth = new google.auth.GoogleAuth({
   credentials,
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
-const SHEET_ID = process.env.SHEET_ID; // Make sure this is set in env variables
-const RANGE = 'Sheet1!A2:D'; // Skip headers
+const SHEET_ID = process.env.GOOGLE_SHEET_ID;  // Ensure consistent env var name here
+const RANGE = 'Sheet1!A2:D'; // Assuming headers are on row 1
 
 export async function appendToSheet(discordUsername, discordId, walletAddress) {
   const client = await auth.getClient();

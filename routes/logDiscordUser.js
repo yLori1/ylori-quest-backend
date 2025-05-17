@@ -1,4 +1,3 @@
-// routes/logDiscordUser.js
 import express from 'express';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import dotenv from 'dotenv';
@@ -7,7 +6,17 @@ dotenv.config();
 const router = express.Router();
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+} catch (e) {
+  console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:', e);
+  process.exit(1);
+}
+
+console.log('Using Google Sheet ID:', SHEET_ID);
+console.log('Service account email:', serviceAccount?.client_email);
 
 router.post('/', async (req, res) => {
   const { username, id } = req.body;
@@ -22,7 +31,7 @@ router.post('/', async (req, res) => {
     await doc.loadInfo();
     const sheet = doc.sheetsByIndex[0];
 
-    // ✅ Prevent duplicate entries
+    // Prevent duplicate entries
     const existingRows = await sheet.getRows();
     const alreadyLogged = existingRows.some(row => row.DiscordID === id);
     if (alreadyLogged) {
