@@ -48,7 +48,7 @@ app.get('/auth/discord/callback', async (req, res) => {
 
     // Redirect to frontend with user data as query params
     const { username, discriminator, id } = user;
-    res.redirect(`${process.env.FRONTEND_URL}/discord/callback?username=${encodeURIComponent(username)}&discriminator=${encodeURIComponent(discriminator)}&id=${encodeURIComponent(id)}`);
+    res.redirect(`${process.env.FRONTEND_URL}/discord/callback?username=${username}&discriminator=${discriminator}&id=${id}`);
   } catch (err) {
     console.error('Discord OAuth error:', err.response?.data || err.message);
     res.status(500).send('Error during Discord OAuth');
